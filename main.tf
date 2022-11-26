@@ -9,6 +9,7 @@ variable "avail_zone" {}
 variable "my_ip" {}
 variable "instance_type" {}
 variable "public_key_location" {}
+variable "private_key_location" {}
 variable "script_location" {}
 
 resource "aws_vpc" "myapp-vpc" {
@@ -117,7 +118,23 @@ resource "aws_instance" "myapp-server" {
   associate_public_ip_address = true
   key_name = aws_key_pair.ssh-key.key_name
 
-  user_data = file(var.script_location)
+# user_data = file(var.script_location)
+
+  connection {
+    type = "ssh"
+    host = self.public_ip
+    user = "ec2-user"
+    private_key = file(var.private_key_location)
+  }
+
+  provisioner "file" {
+    source = var.script_location
+    destination = "/home/ec2_user/entry-script.sh"
+  }
+
+  provisioner "remote-exec" {
+    script = file(var.script_location)
+  }
 
   tags = {Name: "${var.env_prefix}-server"}
 }
