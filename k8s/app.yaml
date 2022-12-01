@@ -1,0 +1,59 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: result-app-deploy
+  labels:
+    name: result-app-deploy
+    app: demo-voting-app
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: result-app-pod
+      labels:
+        name: result-app-pod
+        app: demo-voting-app
+    spec:
+      containers:
+        - name: result-app
+          image: kodekloud/examplevotingapp_result:v1
+          ports:
+            - containerPort: 80
+  selector:
+    matchLabels:
+      name: result-app-pod
+      app: demo-voting-app
+---
+# Private Load Balancer (Internal)
+apiVersion: v1
+kind: Service
+metadata:
+  name: internal-voting-app-service
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balanceing-enabled: 'true'
+    service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
+spec:
+  selector:
+    app: demo-voting-app
+  type: LoadBalancer
+  ports:
+    - port: 80
+      protocol: TCP
+---
+# Public Load Balancer (Internet Facing)
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-voting-app-service
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balanceing-enabled: 'true'
+spec:
+  selector:
+    app: demo-voting-app
+  type: LoadBalancer
+  ports:
+    - port: 80
+      protocol: TCP
