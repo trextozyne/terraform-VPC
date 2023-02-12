@@ -1,2 +1,2 @@
 ## terraform-VPC
-A simple terraform to create a VPC
+Using Modules to organise Monolithic Terraform Code
