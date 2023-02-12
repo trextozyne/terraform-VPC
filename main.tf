@@ -2,58 +2,39 @@ provider "aws" {
   region = "us-east-2"
 }
 
-//variable "subnet_cidr_block" {
-//  description = "Subnet Cidr Block"
-//
-//}
-
-variable "cidr_blocks" {
-  description = "List of cidr blocks"
-  type = list(object({
-    cidr_block = string
-    name = string
-  }))
-}
-
-//variable "environment" {
-//  description = "deployment environment"
-//}
-
-resource "aws_vpc" "development-vpc" {
-  cidr_block = var.cidr_blocks[0].cidr_block
+resource "aws_vpc" "myapp-vpc" {
+  cidr_block = var.vpc_cidr_block
   tags = {
-    Name: var.cidr_blocks[0].name
+    Name: "${var.env_prefix}-vpc"
   }
 }
 
-variable "avail_zone" {}
-
-resource "aws_subnet" "dev-subnet-1" {
-  cidr_block = var.cidr_blocks[1].cidr_block
-  availability_zone = var.avail_zone
-  vpc_id = aws_vpc.development-vpc.id
-  tags = {
-     Name: var.cidr_blocks[1].name
-  }
+module "myapp-subnet" {
+  source = "./modules/subnet"
+  subnet_cidr_block =  var.subnet_cidr_block
+  avail_zone = var.avail_zone
+  env_prefix = var.env_prefix
+  vpc_id = aws_vpc.myapp-vpc.id
+  default_route_table_id = aws_vpc.myapp-vpc.default_route_table_id
 }
 
-data "aws_vpc" "existing_vpc" {
-  default = true
+module "myapp-server" {
+  source = "./modules/webserver"
+  avail_zone = var.avail_zone
+  env_prefix = var.env_prefix
+  image_name = var.image_name
+  instance_type = var.instance_type
+  my_ip = var.my_ip
+  private_key_location = var.private_key_location
+  public_key_location = var.public_key_location
+  script_location = var.script_location
+  subnet_id = module.myapp-subnet.subnet.id
+  vpc_id = aws_vpc.myapp-vpc.id
 }
 
-resource "aws_subnet" "dev-subnet-2" {
-  cidr_block = "172.31.48.0/20"
-  availability_zone = "us-east-2a"
-  vpc_id = data.aws_vpc.existing_vpc.id
-  tags = {
-    Name: "subnet-2-dev"
-  }
+resource "aws_route_table_association" "a-trb-subnet" {
+  subnet_id = module.myapp-subnet.subnet.id // aws_subnet.myapp-subnet-1.id
+  route_table_id = module.myapp-subnet.default_route_table.id  //aws_route_table.myapp-route-table.id
 }
 
-output "dev-vpc-id" {
-  value = aws_vpc.development-vpc.id
-}
 
-output "dev-subnet-id" {
-  value = aws_subnet.dev-subnet-1.id
-}

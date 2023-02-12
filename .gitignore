@@ -1,4 +1,4 @@
-# local ,terraform directory
+# local .terraform directory
 .terraform
 
 #tf state files
@@ -10,3 +10,13 @@
 
 #exe
 *.exe
+
+#Ignore CLI configuration files
+.terraformrc
+terraform.rc
+
+# Ignore Mac/OSX system file, with the folder metadata
+.DS_Store
+
+#ignore crash logs
+crash.log
